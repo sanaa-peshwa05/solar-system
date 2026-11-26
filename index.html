@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solar System Explorer</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #070b14;
+      color: #f1f5f9;
+      padding: 24px;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 16px 0;
+    }
+    button {
+      padding: 10px 16px;
+      border: 1px solid #334155;
+      background: #111827;
+      color: #ffffff;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      border-color: #38bdf8;
+    }
+    .card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 18px;
+      margin-top: 16px;
+      max-width: 720px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Solar System & Space Mission Explorer</h1>
+  <p>Select a body to view weather, missions, and launch context:</p>
+
+  <div class="controls">
+    <button onclick="showBody('sun')">Sun</button>
+    <button onclick="showBody('earth')">Earth</button>
+    <button onclick="showBody('mars')">Mars</button>
+  </div>
+
+  <div id="planet-card" class="card">
+    <h2>No body selected yet</h2>
+    <p>Click Sun, Earth, or Mars above to load details.</p>
+  </div>
+
+  <div class="card">
+    <h2>Career Hierarchy: Space Scientist vs. Astronaut</h2>
+    <p><strong>Space Scientist / Engineer:</strong> B.Sc. or B.Tech → M.Sc., M.Tech, or Ph.D. / research exams → Space agency design, payload, or mission teams.</p>
+    <p><strong>Astronaut / Gaganyatri:</strong> STEM, engineering, or pilot degree → Medical, psychological, and technical selection → Centrifuge, simulator, and mission training.</p>
+  </div>
+
+  <script>
+    const bodies = {
+      sun: {
+        name: "Sun",
+        weather: "Photosphere around 5,500°C with active solar flares and solar wind.",
+        missions: "Aditya-L1 (ISRO) and Parker Solar Probe (NASA) studying solar atmosphere and space weather."
+      },
+      earth: {
+        name: "Earth",
+        weather: "Active atmosphere, oceans, weather fronts, and seasonal climate cycles.",
+        missions: "Low Earth orbit crewed flights and primary launch base for lunar and deep-space missions."
+      },
+      mars: {
+        name: "Mars",
+        weather: "Thin carbon dioxide atmosphere, cold average temperatures, and regional or global dust storms.",
+        missions: "Mangalyaan / Mars Orbiter Mission (ISRO) and Perseverance rover (NASA)."
+      }
+    };
+
+    function showBody(key) {
+      const item = bodies[key];
+      document.getElementById("planet-card").innerHTML = `
+        <h2>${item.name}</h2>
+        <p><strong>Weather & Environment:</strong> ${item.weather}</p>
+        <p><strong>Key Missions:</strong> ${item.missions}</p>
+      `;
+    }
+  </script>
+</body>
+</html>
