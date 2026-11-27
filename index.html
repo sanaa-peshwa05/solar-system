@@ -3,20 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Solar System Explorer</title>
+  <title>Solar System & Space Mission Explorer</title>
   <style>
+    * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: Arial, sans-serif;
       background: #070b14;
       color: #f1f5f9;
       padding: 24px;
+      line-height: 1.5;
     }
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+    }
+    h1 { margin-top: 0; font-size: 1.8rem; }
+    h2 { margin-top: 0; font-size: 1.25rem; color: #e2e8f0; }
     .controls {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
-      margin: 16px 0;
+      margin: 14px 0;
     }
     button {
       padding: 10px 16px;
@@ -25,9 +33,19 @@
       color: #ffffff;
       border-radius: 8px;
       cursor: pointer;
+      font-size: 0.95rem;
     }
-    button:hover {
+    button:hover:not(:disabled) {
       border-color: #38bdf8;
+      background: #172033;
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    button.active {
+      border-color: #38bdf8;
+      background: #0c4a6e;
     }
     .card {
       background: #0f172a;
@@ -35,36 +53,98 @@
       border-radius: 12px;
       padding: 18px;
       margin-top: 16px;
-      max-width: 720px;
+    }
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      background: #1e293b;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 14px 0;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 25%;
+      background: #38bdf8;
+      transition: width 0.25s ease;
+    }
+    .stage-badge {
+      display: inline-block;
+      font-size: 0.85rem;
+      color: #7dd3fc;
+      background: #082f49;
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+    .stage-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .stage-pill {
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      border-radius: 999px;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #1e293b;
+      font-size: 0.92rem;
+      color: #cbd5e1;
     }
   </style>
 </head>
 <body>
-  <h1>Solar System & Space Mission Explorer</h1>
-  <p>Select a body to view weather, missions, and launch context:</p>
+  <div class="container">
+    <h1>Solar System &amp; Space Mission Explorer</h1>
+    <p>Inspect celestial bodies, step through satellite launch-to-orbit stages, and explore space careers.</p>
 
-  <div class="controls">
-    <button onclick="showBody('sun')">Sun</button>
-    <button onclick="showBody('earth')">Earth</button>
-    <button onclick="showBody('mars')">Mars</button>
-  </div>
+    <div class="card">
+      <h2>Celestial Body Weather &amp; Missions</h2>
+      <div class="controls">
+        <button id="btn-sun" onclick="showBody('sun')">Sun</button>
+        <button id="btn-earth" onclick="showBody('earth')">Earth</button>
+        <button id="btn-mars" onclick="showBody('mars')">Mars</button>
+      </div>
+      <div id="planet-card">
+        <p><strong>No body selected yet.</strong> Click Sun, Earth, or Mars above to load details.</p>
+      </div>
+    </div>
 
-  <div id="planet-card" class="card">
-    <h2>No body selected yet</h2>
-    <p>Click Sun, Earth, or Mars above to load details.</p>
-  </div>
+    <div class="card">
+      <h2>Satellite Launch &amp; Orbit Step Viewer</h2>
+      <div class="stage-pills" id="stage-pills"></div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
 
-  <div class="card">
-    <h2>Career Hierarchy: Space Scientist vs. Astronaut</h2>
-    <p><strong>Space Scientist / Engineer:</strong> B.Sc. or B.Tech → M.Sc., M.Tech, or Ph.D. / research exams → Space agency design, payload, or mission teams.</p>
-    <p><strong>Astronaut / Gaganyatri:</strong> STEM, engineering, or pilot degree → Medical, psychological, and technical selection → Centrifuge, simulator, and mission training.</p>
+      <div id="stage-viewer"></div>
+
+      <div class="controls">
+        <button id="prev-btn" onclick="prevStage()">Previous</button>
+        <button id="next-btn" onclick="nextStage()">Next</button>
+        <button id="play-btn" onclick="togglePlay()">Play</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Career Hierarchy: Space Scientist vs. Astronaut</h2>
+      <p><strong>Space Scientist / Engineer:</strong> B.Sc. or B.Tech → M.Sc., M.Tech, or Ph.D. / research exams → Space agency design, payload, or mission teams.</p>
+      <p><strong>Astronaut / Gaganyatri:</strong> STEM, engineering, or pilot degree → Medical, psychological, and technical selection → Centrifuge, simulator, and mission training.</p>
+    </div>
   </div>
 
   <script>
     const bodies = {
       sun: {
         name: "Sun",
-        weather: "Photosphere around 5,500°C with active solar flares and solar wind.",
+        weather: "Photosphere around 5,500°C with active solar flares, coronal mass ejections, and solar wind.",
         missions: "Aditya-L1 (ISRO) and Parker Solar Probe (NASA) studying solar atmosphere and space weather."
       },
       earth: {
@@ -79,14 +159,138 @@
       }
     };
 
+    const stages = [
+      {
+        title: "Stage 1: Liftoff & Ascent",
+        altitude: "0 → ~100 km (Kármán line)",
+        objective: "Overcome Earth's gravity and dense lower atmosphere using booster and core stages.",
+        details: "Rockets pitch downrange to gain horizontal speed while shedding empty stages to reduce mass."
+      },
+      {
+        title: "Stage 2: Parking Orbit Insertion",
+        altitude: "~200–800 km (Low Earth Orbit)",
+        objective: "Reach orbital velocity (~7.8 km/s in LEO) so centrifugal pull balances gravity.",
+        details: "Upper-stage burns circularize the path and allow telemetry, solar array deployment, and orbit checks."
+      },
+      {
+        title: "Stage 3: Transfer Trajectory Burn",
+        altitude: "Escaping LEO toward target path",
+        objective: "Boost spacecraft speed to enter a fuel-efficient transfer ellipse (such as Hohmann transfer).",
+        details: "Precision timing aligns the spacecraft's path with the target orbit or destination planet."
+      },
+      {
+        title: "Stage 4: Target Orbit Capture",
+        altitude: "Target mission orbit",
+        objective: "Brake or adjust velocity so the spacecraft settles into its operational orbit.",
+        details: "Once locked in orbit, payload instruments calibrate and begin science or relay operations."
+      }
+    ];
+
+    let currentStage = 0;
+    let playTimer = null;
+
     function showBody(key) {
       const item = bodies[key];
+      ["sun", "earth", "mars"].forEach((id) => {
+        document.getElementById("btn-" + id).classList.toggle("active", id === key);
+      });
       document.getElementById("planet-card").innerHTML = `
-        <h2>${item.name}</h2>
-        <p><strong>Weather & Environment:</strong> ${item.weather}</p>
+        <h3>${item.name}</h3>
+        <p><strong>Weather &amp; Environment:</strong> ${item.weather}</p>
         <p><strong>Key Missions:</strong> ${item.missions}</p>
       `;
     }
+
+    function renderStage() {
+      const s = stages[currentStage];
+      const pct = ((currentStage + 1) / stages.length) * 100;
+      document.getElementById("progress-fill").style.width = pct + "%";
+
+      document.getElementById("stage-viewer").innerHTML = `
+        <span class="stage-badge">Step ${currentStage + 1} of ${stages.length}</span>
+        <h3>${s.title}</h3>
+        <p>${s.objective}</p>
+        <div class="meta-grid">
+          <div><strong>Altitude / Zone:</strong> ${s.altitude}</div>
+          <div><strong>Key Action:</strong> ${s.details}</div>
+        </div>
+      `;
+
+      document.getElementById("prev-btn").disabled = currentStage === 0;
+      document.getElementById("next-btn").disabled = currentStage === stages.length - 1;
+
+      const pills = document.querySelectorAll(".stage-pill");
+      pills.forEach((pill, idx) => {
+        pill.classList.toggle("active", idx === currentStage);
+      });
+    }
+
+    function nextStage() {
+      if (currentStage < stages.length - 1) {
+        currentStage++;
+        renderStage();
+      } else {
+        stopPlay();
+      }
+    }
+
+    function prevStage() {
+      stopPlay();
+      if (currentStage > 0) {
+        currentStage--;
+        renderStage();
+      }
+    }
+
+    function startPlay() {
+      if (currentStage >= stages.length - 1) {
+        currentStage = 0;
+        renderStage();
+      }
+      document.getElementById("play-btn").textContent = "Pause";
+      playTimer = setInterval(() => {
+        if (currentStage < stages.length - 1) {
+          currentStage++;
+          renderStage();
+        } else {
+          stopPlay();
+        }
+      }, 1800);
+    }
+
+    function stopPlay() {
+      if (playTimer) {
+        clearInterval(playTimer);
+        playTimer = null;
+      }
+      document.getElementById("play-btn").textContent = "Play";
+    }
+
+    function togglePlay() {
+      if (playTimer) {
+        stopPlay();
+      } else {
+        startPlay();
+      }
+    }
+
+    function initStagePills() {
+      const container = document.getElementById("stage-pills");
+      stages.forEach((s, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "stage-pill";
+        btn.textContent = (idx + 1) + ". " + s.title.replace(/^Stage \d+:\s*/, "");
+        btn.onclick = () => {
+          stopPlay();
+          currentStage = idx;
+          renderStage();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    initStagePills();
+    renderStage();
   </script>
 </body>
 </html>
