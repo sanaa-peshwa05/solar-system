@@ -15,16 +15,18 @@
       line-height: 1.5;
     }
     .container {
-      max-width: 860px;
+      max-width: 900px;
       margin: 0 auto;
     }
     h1 { margin-top: 0; font-size: 1.8rem; }
     h2 { margin-top: 0; font-size: 1.25rem; color: #e2e8f0; }
+    h3 { margin: 0 0 8px; font-size: 1.1rem; color: #f8fafc; }
     .controls {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
       margin: 14px 0;
+      align-items: center;
     }
     button {
       padding: 10px 16px;
@@ -54,6 +56,26 @@
       padding: 18px;
       margin-top: 16px;
     }
+    .mission-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      background: #0b1324;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+    }
+    .lv-tag {
+      color: #7dd3fc;
+      background: #082f49;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+    }
     .canvas-wrap {
       background: #060a12;
       border: 1px solid #1e293b;
@@ -68,6 +90,9 @@
     }
     .body-hit {
       cursor: pointer;
+    }
+    .body-hit:focus {
+      outline: none;
     }
     .progress-track {
       width: 100%;
@@ -105,7 +130,7 @@
     }
     .meta-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 10px;
       margin-top: 12px;
       padding-top: 12px;
@@ -118,7 +143,7 @@
 <body>
   <div class="container">
     <h1>Solar System &amp; Space Mission Explorer</h1>
-    <p>Click bodies directly in the animated Solar System view, step through launch-to-orbit trajectories, and review space career paths.</p>
+    <p>Inspect solar system bodies, switch between mission flight profiles, and step through orbital trajectories.</p>
 
     <div class="card">
       <h2>Animated Solar System &amp; Body Inspector</h2>
@@ -127,19 +152,19 @@
           <circle cx="220" cy="135" r="58" fill="none" stroke="#1e293b" stroke-dasharray="4 4" />
           <circle cx="220" cy="135" r="98" fill="none" stroke="#1e293b" stroke-dasharray="4 4" />
 
-          <g id="hit-sun" class="body-hit" onclick="showBody('sun')">
+          <g id="hit-sun" class="body-hit" role="button" tabindex="0" aria-label="Select Sun" onclick="showBody('sun')" onkeydown="handleBodyKey(event, 'sun')">
             <circle id="ring-sun" cx="220" cy="135" r="28" fill="none" stroke="#facc15" stroke-width="2" opacity="0" />
             <circle cx="220" cy="135" r="22" fill="#f59e0b" />
             <text x="220" y="172" text-anchor="middle" fill="#fde68a" font-size="12">Sun</text>
           </g>
 
-          <g id="hit-earth" class="body-hit" transform="translate(278, 135)" onclick="showBody('earth')">
+          <g id="hit-earth" class="body-hit" role="button" tabindex="0" aria-label="Select Earth" transform="translate(278, 135)" onclick="showBody('earth')" onkeydown="handleBodyKey(event, 'earth')">
             <circle id="ring-earth" cx="0" cy="0" r="15" fill="none" stroke="#38bdf8" stroke-width="2" opacity="0" />
             <circle cx="0" cy="0" r="10" fill="#3b82f6" />
             <text x="0" y="24" text-anchor="middle" fill="#bae6fd" font-size="12">Earth</text>
           </g>
 
-          <g id="hit-mars" class="body-hit" transform="translate(122, 135)" onclick="showBody('mars')">
+          <g id="hit-mars" class="body-hit" role="button" tabindex="0" aria-label="Select Mars" transform="translate(122, 135)" onclick="showBody('mars')" onkeydown="handleBodyKey(event, 'mars')">
             <circle id="ring-mars" cx="0" cy="0" r="14" fill="none" stroke="#fb7185" stroke-width="2" opacity="0" />
             <circle cx="0" cy="0" r="8.5" fill="#ef4444" />
             <text x="0" y="23" text-anchor="middle" fill="#fecdd3" font-size="12">Mars</text>
@@ -165,32 +190,52 @@
     </div>
 
     <div class="card">
-      <h2>Satellite Launch &amp; Orbit Step Viewer</h2>
+      <h2>Mission-Specific Trajectory Explorer</h2>
+
+      <div class="controls" id="mission-selector">
+        <button id="mission-chandrayaan3" class="active" onclick="selectMission('chandrayaan3')">Chandrayaan-3 (Moon)</button>
+        <button id="mission-adityal1" onclick="selectMission('adityal1')">Aditya-L1 (Sun-Earth L1)</button>
+        <button id="mission-mars" onclick="selectMission('mars')">Mangalyaan / Mars</button>
+      </div>
+
+      <div class="mission-banner">
+        <div>
+          <strong id="mission-title">Chandrayaan-3</strong> — <span id="mission-summary">Geocentric orbit-raising to Lunar Orbit Insertion &amp; South Pole landing.</span>
+        </div>
+        <span class="lv-tag" id="mission-lv">Launch Vehicle: LVM3</span>
+      </div>
+
       <div class="stage-pills" id="stage-pills"></div>
       <div class="progress-track">
         <div class="progress-fill" id="progress-fill"></div>
       </div>
 
       <div class="canvas-wrap">
-        <svg viewBox="0 0 760 250" aria-label="Satellite launch and orbit trajectory animation">
-          <circle cx="150" cy="145" r="36" fill="#2563eb" stroke="#93c5fd" stroke-width="2" />
-          <text x="150" y="196" text-anchor="middle" fill="#bfdbfe" font-size="12">Earth</text>
+        <svg id="trajectory-svg" viewBox="0 0 760 260" aria-label="Mission-specific trajectory animation">
+          <!-- Reference orbits (toggled per mission) -->
+          <circle id="ref-earth-orbit" cx="145" cy="145" r="78" fill="none" stroke="#1e293b" stroke-dasharray="4 4" />
+          <circle id="ref-lunar-orbit" cx="565" cy="115" r="112" fill="none" stroke="#334155" stroke-dasharray="5 5" />
+          <line id="ref-sun-line" x1="145" y1="145" x2="665" y2="120" stroke="#334155" stroke-dasharray="4 4" opacity="0" />
+          <path id="ref-mars-arc" d="M 145 145 Q 410 245 625 95" fill="none" stroke="#334155" stroke-dasharray="5 5" opacity="0" />
 
-          <circle cx="150" cy="145" r="64" fill="none" stroke="#334155" stroke-dasharray="4 4" />
-          <text x="150" y="73" text-anchor="middle" fill="#64748b" font-size="11">LEO Parking Orbit</text>
+          <!-- Earth anchor -->
+          <circle cx="145" cy="145" r="34" fill="#2563eb" stroke="#93c5fd" stroke-width="2" />
+          <text x="145" y="194" text-anchor="middle" fill="#bfdbfe" font-size="12">Earth</text>
 
-          <ellipse cx="385" cy="130" rx="235" ry="72" fill="none" stroke="#334155" stroke-dasharray="5 5" />
-          <text x="385" y="48" text-anchor="middle" fill="#64748b" font-size="11">Transfer Ellipse &amp; Target Orbit Zone</text>
+          <!-- Target body / point (updated dynamically) -->
+          <g id="target-group" transform="translate(565, 115)">
+            <circle id="target-circle" cx="0" cy="0" r="22" fill="#94a3b8" stroke="#e2e8f0" stroke-width="2" />
+            <text id="target-label" x="0" y="38" text-anchor="middle" fill="#e2e8f0" font-size="12">Moon</text>
+          </g>
 
-          <circle cx="605" cy="115" r="24" fill="#dc2626" stroke="#fda4af" stroke-width="2" />
-          <text x="605" y="154" text-anchor="middle" fill="#fecdd3" font-size="12">Target Body</text>
+          <!-- 4 mission-specific trajectory segments -->
+          <path id="path-0" d="" fill="none" stroke="#38bdf8" stroke-width="3" opacity="0.35" />
+          <path id="path-1" d="" fill="none" stroke="#38bdf8" stroke-width="3" opacity="0.35" />
+          <path id="path-2" d="" fill="none" stroke="#38bdf8" stroke-width="3" opacity="0.35" />
+          <path id="path-3" d="" fill="none" stroke="#38bdf8" stroke-width="3" opacity="0.35" />
 
-          <path id="path-0" d="M 150 109 C 150 86, 174 81, 196 86" fill="none" stroke="#38bdf8" stroke-width="3" opacity="0.35" />
-          <path id="path-1" d="M 196 86 A 64 64 0 1 1 86 145" fill="none" stroke="#38bdf8" stroke-width="3" opacity="0.35" />
-          <path id="path-2" d="M 86 145 C 155 215, 435 205, 565 130" fill="none" stroke="#38bdf8" stroke-width="3" opacity="0.35" />
-          <path id="path-3" d="M 565 130 A 42 42 0 1 1 638 92" fill="none" stroke="#38bdf8" stroke-width="3" opacity="0.35" />
-
-          <g id="craft-marker" transform="translate(150, 109)">
+          <!-- Animated spacecraft marker -->
+          <g id="craft-marker" transform="translate(145, 111)">
             <polygon points="10,0 -7,-6 -4,0 -7,6" fill="#facc15" stroke="#0f172a" stroke-width="1" />
             <circle cx="0" cy="0" r="13" fill="none" stroke="#fde047" stroke-width="1.2" opacity="0.65" />
           </g>
@@ -232,32 +277,125 @@
       }
     };
 
-    const stages = [
-      {
-        title: "Stage 1: Liftoff & Ascent",
-        altitude: "0 → ~100 km (Kármán line)",
-        objective: "Overcome Earth's gravity and dense lower atmosphere using booster and core stages.",
-        details: "Rockets pitch downrange to gain horizontal speed while shedding empty stages to reduce mass."
+    const missions = {
+      chandrayaan3: {
+        name: "Chandrayaan-3",
+        launchVehicle: "Launch Vehicle: LVM3",
+        summary: "Geocentric orbit-raising to Lunar Orbit Insertion & South Pole landing.",
+        target: { x: 565, y: 115, r: 22, fill: "#cbd5e1", stroke: "#f8fafc", label: "Moon" },
+        guides: { earthOrbit: true, lunarOrbit: true, sunLine: false, marsArc: false },
+        paths: [
+          "M 145 111 C 155 78, 200 72, 223 145",
+          "M 223 145 C 235 235, 95 235, 110 82",
+          "M 110 82 C 210 25, 420 45, 535 102",
+          "M 535 102 A 34 34 0 1 1 565 149"
+        ],
+        stages: [
+          {
+            title: "Stage 1: LVM3 Ascent & Elliptical Parking Orbit",
+            altitude: "~170 × 36,500 km (Geocentric)",
+            objective: "Inject the composite module into a high-apogee Earth orbit with controlled perigee.",
+            details: "LVM3 core boosters, liquid stage, and cryogenic upper stage complete ascent and payload separation."
+          },
+          {
+            title: "Stage 2: Earthbound Apogee-Raising Burns",
+            altitude: "Up to ~127,609 km apogee",
+            objective: "Raise orbit apogee step-by-step using liquid engine perigee/apogee maneuvers.",
+            details: "Each burn expands the ellipse outward, building energy toward the Moon's orbital distance."
+          },
+          {
+            title: "Stage 3: Trans-Lunar Injection (TLI)",
+            altitude: "Cislunar transfer toward Moon",
+            objective: "Execute TLI burn to leave Earth-bound orbits and intercept the lunar path.",
+            details: "Propulsion module guides the spacecraft along a low-energy lunar transfer trajectory."
+          },
+          {
+            title: "Stage 4: Lunar Orbit Insertion & Descent Prep",
+            altitude: "~100 km circular lunar orbit",
+            objective: "Perform retro-burn to get captured by lunar gravity and circularize orbit.",
+            details: "Sets up lander-rover separation and powered descent toward the lunar south polar region."
+          }
+        ]
       },
-      {
-        title: "Stage 2: Parking Orbit Insertion",
-        altitude: "~200–800 km (Low Earth Orbit)",
-        objective: "Reach orbital velocity (~7.8 km/s in LEO) so centrifugal pull balances gravity.",
-        details: "Upper-stage burns circularize the path and allow telemetry, solar array deployment, and orbit checks."
+      adityal1: {
+        name: "Aditya-L1",
+        launchVehicle: "Launch Vehicle: PSLV-XL",
+        summary: "Earth-bound perigee/apogee raises followed by Sun-Earth L1 cruise & halo orbit.",
+        target: { x: 645, y: 122, r: 14, fill: "#f59e0b", stroke: "#fde68a", label: "Sun-Earth L1" },
+        guides: { earthOrbit: true, lunarOrbit: false, sunLine: true, marsArc: false },
+        paths: [
+          "M 145 111 C 165 82, 205 88, 218 145",
+          "M 218 145 C 210 218, 92 212, 115 95",
+          "M 115 95 C 255 58, 455 78, 618 118",
+          "M 618 118 A 28 18 0 1 1 645 140"
+        ],
+        stages: [
+          {
+            title: "Stage 1: PSLV-XL Insertion into Bound Orbit",
+            altitude: "~235 × 19,502 km",
+            objective: "Place Aditya-L1 into an initial elliptical Earth orbit with precision.",
+            details: "PSLV-XL upper stage completes injection and attitude stabilization."
+          },
+          {
+            title: "Stage 2: Four Earth-Bound Orbit-Raising Burns",
+            altitude: "Apogee raised progressively",
+            objective: "Increase orbital energy across four planned maneuvers around Earth.",
+            details: "Prepares the spacecraft for departure along the Sun-Earth line."
+          },
+          {
+            title: "Stage 3: Trans-Lagrangian Point 1 Cruise",
+            altitude: "~1.5 million km from Earth (toward Sun)",
+            objective: "Escape Earth's immediate gravity dominance and coast toward Lagrange point L1.",
+            details: "Maintains continuous unobstructed solar viewing using onboard navigation."
+          },
+          {
+            title: "Stage 4: Halo Orbit Insertion around L1",
+            altitude: "Halo orbit around Sun-Earth L1",
+            objective: "Execute insertion burn so gravitational balance keeps the spacecraft in a halo path.",
+            details: "Enables 24/7 solar corona and space-weather observation with minimal station-keeping fuel."
+          }
+        ]
       },
-      {
-        title: "Stage 3: Transfer Trajectory Burn",
-        altitude: "Escaping LEO toward target path",
-        objective: "Boost spacecraft speed to enter a fuel-efficient transfer ellipse (such as Hohmann transfer).",
-        details: "Precision timing aligns the spacecraft's path with the target orbit or destination planet."
-      },
-      {
-        title: "Stage 4: Target Orbit Capture",
-        altitude: "Target mission orbit",
-        objective: "Brake or adjust velocity so the spacecraft settles into its operational orbit.",
-        details: "Once locked in orbit, payload instruments calibrate and begin science or relay operations."
+      mars: {
+        name: "Mangalyaan / Mars Mission",
+        launchVehicle: "Launch Vehicle: PSLV-XL",
+        summary: "Earth orbit raising, Trans-Mars Injection, heliocentric cruise & Mars orbit capture.",
+        target: { x: 625, y: 95, r: 22, fill: "#ef4444", stroke: "#fda4af", label: "Mars" },
+        guides: { earthOrbit: true, lunarOrbit: false, sunLine: false, marsArc: true },
+        paths: [
+          "M 145 111 C 168 84, 212 92, 222 145",
+          "M 222 145 C 205 225, 88 215, 118 92",
+          "M 118 92 C 255 185, 445 215, 598 106",
+          "M 598 106 A 32 32 0 1 1 625 127"
+        ],
+        stages: [
+          {
+            title: "Stage 1: Geocentric Parking Orbit Insertion",
+            altitude: "~250 × 23,500 km",
+            objective: "Achieve initial elliptical Earth orbit via PSLV-XL.",
+            details: "Establishes baseline telemetry and spacecraft health checks before deep-space burns."
+          },
+          {
+            title: "Stage 2: Perigee Burns & Apogee Expansion",
+            altitude: "Apogee raised toward ~192,874 km",
+            objective: "Build orbital velocity through multiple perigee firings.",
+            details: "Positions the spacecraft for an efficient Trans-Mars Injection window."
+          },
+          {
+            title: "Stage 3: Trans-Mars Injection & Heliocentric Cruise",
+            altitude: "Interplanetary transfer (~670–680M km arc)",
+            objective: "Break free of Earth's gravity well and cruise around the Sun toward Mars.",
+            details: "Uses trajectory correction maneuvers to align arrival geometry with Mars."
+          },
+          {
+            title: "Stage 4: Mars Orbit Insertion (MOI)",
+            altitude: "Elliptical capture orbit around Mars",
+            objective: "Fire main liquid engine retrograde to be captured into Martian orbit.",
+            details: "Begins atmospheric, surface, and exosphere science observations."
+          }
+        ]
       }
-    ];
+    };
 
     let selectedBody = null;
     let earthAngle = 0;
@@ -265,6 +403,7 @@
     let solarRunning = true;
     let lastFrameTime = null;
 
+    let currentMissionKey = "chandrayaan3";
     let currentStage = 0;
     let craftProgress = 0;
     let playTimer = null;
@@ -301,6 +440,13 @@
         : "Orbits paused for easy clicking.";
     }
 
+    function handleBodyKey(event, key) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        showBody(key);
+      }
+    }
+
     function showBody(key) {
       selectedBody = key;
       const item = bodies[key];
@@ -316,10 +462,53 @@
       `;
     }
 
+    function getActiveStages() {
+      return missions[currentMissionKey].stages;
+    }
+
+    function applyMissionVisuals() {
+      const m = missions[currentMissionKey];
+      document.getElementById("mission-title").textContent = m.name;
+      document.getElementById("mission-summary").textContent = m.summary;
+      document.getElementById("mission-lv").textContent = m.launchVehicle;
+
+      Object.keys(missions).forEach((key) => {
+        document.getElementById("mission-" + key).classList.toggle("active", key === currentMissionKey);
+      });
+
+      document.getElementById("ref-earth-orbit").setAttribute("opacity", m.guides.earthOrbit ? "1" : "0");
+      document.getElementById("ref-lunar-orbit").setAttribute("opacity", m.guides.lunarOrbit ? "1" : "0");
+      document.getElementById("ref-sun-line").setAttribute("opacity", m.guides.sunLine ? "1" : "0");
+      document.getElementById("ref-mars-arc").setAttribute("opacity", m.guides.marsArc ? "1" : "0");
+
+      const targetGroup = document.getElementById("target-group");
+      targetGroup.setAttribute("transform", `translate(${m.target.x}, ${m.target.y})`);
+      const targetCircle = document.getElementById("target-circle");
+      targetCircle.setAttribute("r", m.target.r);
+      targetCircle.setAttribute("fill", m.target.fill);
+      targetCircle.setAttribute("stroke", m.target.stroke);
+      document.getElementById("target-label").textContent = m.target.label;
+
+      m.paths.forEach((d, idx) => {
+        document.getElementById("path-" + idx).setAttribute("d", d);
+      });
+
+      renderStagePills();
+    }
+
+    function selectMission(missionKey) {
+      stopPlay();
+      currentMissionKey = missionKey;
+      currentStage = 0;
+      applyMissionVisuals();
+      renderStage(true);
+    }
+
     function positionCraftAlongStage(stageIdx, t) {
       const clampedT = Math.max(0, Math.min(1, t));
       const pathEl = document.getElementById("path-" + stageIdx);
       const totalLen = pathEl.getTotalLength();
+      if (!totalLen) return;
       const dist = clampedT * totalLen;
       const pt = pathEl.getPointAtLength(dist);
       const delta = Math.min(2, totalLen * 0.01);
@@ -355,12 +544,13 @@
     }
 
     function renderStage(animateGlide = true) {
-      const s = stages[currentStage];
-      const pct = ((currentStage + 1) / stages.length) * 100;
+      const stageList = getActiveStages();
+      const s = stageList[currentStage];
+      const pct = ((currentStage + 1) / stageList.length) * 100;
       document.getElementById("progress-fill").style.width = pct + "%";
 
       document.getElementById("stage-viewer").innerHTML = `
-        <span class="stage-badge">Step ${currentStage + 1} of ${stages.length}</span>
+        <span class="stage-badge">${missions[currentMissionKey].name} • Step ${currentStage + 1} of ${stageList.length}</span>
         <h3>${s.title}</h3>
         <p>${s.objective}</p>
         <div class="meta-grid">
@@ -370,13 +560,13 @@
       `;
 
       document.getElementById("prev-btn").disabled = currentStage === 0;
-      document.getElementById("next-btn").disabled = currentStage === stages.length - 1;
+      document.getElementById("next-btn").disabled = currentStage === stageList.length - 1;
 
       document.querySelectorAll(".stage-pill").forEach((pill, idx) => {
         pill.classList.toggle("active", idx === currentStage);
       });
 
-      stages.forEach((_, idx) => {
+      stageList.forEach((_, idx) => {
         const p = document.getElementById("path-" + idx);
         if (idx < currentStage) {
           p.setAttribute("stroke", "#22c55e");
@@ -403,7 +593,8 @@
     }
 
     function nextStage() {
-      if (currentStage < stages.length - 1) {
+      const stageList = getActiveStages();
+      if (currentStage < stageList.length - 1) {
         currentStage++;
         renderStage(true);
       } else {
@@ -420,13 +611,15 @@
     }
 
     function startPlay() {
-      if (currentStage >= stages.length - 1) {
+      const stageList = getActiveStages();
+      if (currentStage >= stageList.length - 1) {
         currentStage = 0;
         renderStage(true);
       }
       document.getElementById("play-btn").textContent = "Pause";
       playTimer = setInterval(() => {
-        if (currentStage < stages.length - 1) {
+        const list = getActiveStages();
+        if (currentStage < list.length - 1) {
           currentStage++;
           renderStage(true);
         } else {
@@ -451,9 +644,10 @@
       }
     }
 
-    function initStagePills() {
+    function renderStagePills() {
       const container = document.getElementById("stage-pills");
-      stages.forEach((s, idx) => {
+      container.innerHTML = "";
+      getActiveStages().forEach((s, idx) => {
         const btn = document.createElement("button");
         btn.className = "stage-pill";
         btn.textContent = (idx + 1) + ". " + s.title.replace(/^Stage \d+:\s*/, "");
@@ -466,7 +660,7 @@
       });
     }
 
-    initStagePills();
+    applyMissionVisuals();
     updateSolarPositions();
     renderStage(false);
     requestAnimationFrame(stepSolarOrbits);
